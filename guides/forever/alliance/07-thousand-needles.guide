@@ -70,6 +70,7 @@ next forever/alliance/30-40/01-hillsbrad-foothills
 
 step Darkshire
   zone Duskwood
+  tip No Bronze Tube for Look to the Stars? Herble Baubbletump sells it in the house beside Viktori, in limited stock; Neal Allen in Menethil Harbor sells it too.
   fly "Darkshire"                         -- From Dungar Longdrink in Stormwind
   sethome "Darkshire" npc 6790            -- Innkeeper Trelayne, Scarlet Raven Tavern
   turnin 1243                             -- Watcher Backus, at the north entrance of town
@@ -78,6 +79,7 @@ step Darkshire
   turnin 66                               -- Clerk Daltry, in the town hall
   accept 58                               -- Commander Althea Ebonlocke
   accept 173                              -- Calor, by the town hall
+  buy 4371 x1 npc 3133 optional           -- Bronze Tube, from Herble Baubbletump, if you have none
   turnin 174                              -- Viktori Prism'Antras, at the east end of town
   accept 175
 
