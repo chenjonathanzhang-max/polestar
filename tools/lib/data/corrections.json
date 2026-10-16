@@ -771,6 +771,104 @@
 			},
 			"note": "Wowhead Forever npc=250689: Living Monstrosity is Elite (checked 2026-10-13); QuestieDB's Forever store gives every Forever npc rank 0."
 		},
+		"250926": {
+			"addSpawns": {
+				"2521": {
+					"f": "l",
+					"pts": [
+						[
+							37,
+							24.6
+						],
+						[
+							37.2,
+							26.4
+						],
+						[
+							37.4,
+							26.6
+						],
+						[
+							37.6,
+							25.2
+						],
+						[
+							37.8,
+							26.8
+						],
+						[
+							37.8,
+							29
+						],
+						[
+							38,
+							26.4
+						],
+						[
+							38,
+							30.2
+						],
+						[
+							38.4,
+							27.8
+						],
+						[
+							38.8,
+							27.4
+						],
+						[
+							39,
+							27.6
+						],
+						[
+							39.8,
+							27.6
+						],
+						[
+							40.2,
+							26.4
+						],
+						[
+							40.4,
+							27
+						],
+						[
+							41.1,
+							26.5
+						],
+						[
+							41.2,
+							27.6
+						],
+						[
+							41.4,
+							25.2
+						],
+						[
+							41.4,
+							26.4
+						],
+						[
+							41.6,
+							25.2
+						],
+						[
+							41.6,
+							26.2
+						],
+						[
+							41.6,
+							27
+						],
+						[
+							41.6,
+							27.8
+						]
+					]
+				}
+			},
+			"note": "Scrawny Ursera (Zephras Isle, Aggressive Encroachment 92473): Wowhead Forever https://www.wowhead.com/forever/npc=250926 map data has 22 spawns, from the slope west of Thendal Village (41-41.6,25-28) south-west to 37,24.6 (checked 2026-10-16). QuestieDB's Forever store has 173 points, 31 of them east of 41.7 inside Thendal Village (41.7-43.3,23-28), where none spawn: the step's arrow led into the village (Sato's report, issue #93). Replaces the map's spawns with Wowhead's points, in Forever's frame."
+		},
 		"250936": {
 			"set": {
 				"rank": 4

@@ -38,6 +38,9 @@ next forever/horde/02-the-barrens
 # - The Ripped Missive (94490) is accepted from Commander Haalien's drop in
 #   the Al'Aketh camp; The Fate of the Den (94491) goes to Lotheluum on the
 #   way back through Valanaar.
+# - Welcome to Shen'dar Village (92514) is taken from Constable Aonda when
+#   The Next Step is handed in, not on the later visit: the talk to Illaya
+#   for The Windshapers then counts for it too, and only Coriella is left.
 # - Class training: added at Shen'dar (about 9), Valanaar (about 12) and
 #   before leaving the isle (about 14); every class has a trainer in each
 #   town, and the next guide would otherwise be the first training since 6.
@@ -143,12 +146,12 @@ step Dalia the Collector
   turnin 93552
 
 step The standing stones
-  tip Yala Windwatcher stands at the Thendal Standing Stones, east of the village. Roiling Winds and Al'Aketh Converts gather just north of her; the Elemental Convergence is just north-east of her.
+  tip Yala Windwatcher stands at the Thendal Standing Stones, east of the village. Roiling Winds and Al'Aketh Converts gather just north of her. The Elemental Convergence is just north-east of her: cast your Skysight racial ability next to it.
   turnin 92464                        -- Yala Windwatcher
   accept 92465
   kill 251143 quest 92465.2
   kill 251160 quest 92465.1
-  interact 460001 quest 92598.1
+  interact 460001 quest 92598.1 "Cast Skysight near the Elemental Convergence"
   turnin 92465
   accept 92469
 
@@ -176,7 +179,7 @@ step Windshaper Boro
 
 step Scrawny Ursera
   tip Scrawny Ursera prowl the slopes south-west of the village, on the way to Hanaa.
-  collect 251918 quest 92473.1
+  collect 251918 quest 92473.1 @41.4,26.4
 
 step Hanaa Nightwind
   tip Hanaa waits in Thendal Grove, south-west of the village. The Al'Aketh camp is just beyond her; Malduko Cloudcrush leads it.
@@ -218,6 +221,7 @@ step Shen'dar Village
   tip Follow the road south to Shen'dar Village, in the middle of the isle.
   turnin 96638                        -- Raan Wildwind
   turnin 92472                        -- Constable Aonda
+  accept 92514                        -- Constable Aonda
   accept 92595                        -- Illaya Amberwind
   complete 92595 @43.53,44.78         -- talk to Illaya Amberwind
   turnin 92595
@@ -225,18 +229,16 @@ step Shen'dar Village
   accept 96101                        -- Raan Wildwind
 
 step Raan's campfire
-  tip Light the campfire next to Raan, then take the meal to Zerril Softbreeze at the cook fire.
-  interact 460003 quest 96101.1
+  tip Sit by Raan's campfire (type /sit) until you get the Boosted Rest buff, then find Zerril Softbreeze at the cook fire.
+  complete 96101 @41.73,44.78         -- /sit by Raan's campfire until you get Boosted Rest
   turnin 96101                        -- Raan Wildwind
   accept 96646
   complete 96646 @43.85,43.9          -- talk to Zerril Softbreeze
   turnin 96646                        -- Zerril Softbreeze
 
 step Welcome to Shen'dar Village
-  accept 92514                        -- Constable Aonda
-  talk 251902                         -- Illaya Amberwind
-  talk 254089                         -- Coriella Calmbreeze
-  complete 92514 @43.05,43.3
+  kill 251902 quest 92514.1 "Talk to Illaya Amberwind"
+  kill 254089 quest 92514.2 @43.05,43.3 "Talk to Coriella Calmbreeze"
   turnin 92514                        -- Constable Aonda
   accept 92517
   accept 92553                        -- Zerril Softbreeze

@@ -123,12 +123,12 @@ step Raw Windstones and the Cirrusfly Queen
   kill 251404 quest 92463.1
 
 step Yala Windwatcher
-  tip Yala Windwatcher keeps watch east of the grove. The Roiling Winds and Al'Aketh Converts gather just north of her; the Ley Line rises further north.
+  tip Yala Windwatcher keeps watch east of the grove. The Roiling Winds and Al'Aketh Converts gather just north of her; the Ley Line rises further north: cast your Read Ley Line racial ability at it.
   turnin 92464                                -- Yala Windwatcher
   accept 92465
   kill 251143 quest 92465.2
   kill 251160 quest 92465.1
-  interact 460002 quest 92597.1 @46.29,17.87  -- The Ley Line
+  interact 460002 quest 92597.1 @46.29,17.87 "Cast Read Ley Line at the Ley Line"
   turnin 92465                                -- Yala Windwatcher
   accept 92469
 
@@ -145,7 +145,7 @@ step Thendal Grove turn-ins
 
 step Scrawny Ursera and Urs'anah
   tip Scrawny Ursera prowl the woods just west of the grove; the Ursera Scavengers den further west, with Urs'anah, the matriarch, at the back of the den.
-  collect 251918 quest 92473.1
+  collect 251918 quest 92473.1 @41.4,26.4
   kill 250937 quest 92470.1
   collect 252665 quest 92470.2                -- Head of Urs'anah
 
@@ -179,7 +179,7 @@ step Shen'dar Village
 
 step Raan Wildwind
   accept 96101                                -- Raan Wildwind
-  complete 96101 @41.73,44.78                 -- Light the campfire
+  complete 96101 @41.73,44.78                 -- /sit by Raan's campfire until you get Boosted Rest
   turnin 96101
   accept 96646
   complete 96646 @43.85,43.9                  -- Zerril Softbreeze
