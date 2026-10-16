@@ -61,6 +61,7 @@ end
 local REASON = {
 	class = L["not for your class"], armor = L["armor you cannot wear"],
 	weapon = L["weapon you cannot use"], dualwield = L["needs Dual Wield"],
+	skill = L["weapon skill not trained"],
 }
 
 function Gear.TooltipLine(link)

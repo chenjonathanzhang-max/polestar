@@ -425,6 +425,7 @@ L["at level"] = "레벨"
 L["Best pick"] = "최선의 선택"
 L["Item"] = "아이템"
 L["Reward pick"] = "보상 선택"
+-- L["weapon skill not trained"] = ""
 
 -- Gear/Options.lua
 L["Automatic (talents)"] = "자동 (특성)"

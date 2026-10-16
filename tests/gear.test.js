@@ -202,6 +202,28 @@ test('proficiency and level: plate waits for 40, cloth-only classes cannot wear 
 	assert.equal(priest, true);
 });
 
+// #107: rogues can train swords, but only from a weapon master.
+test('a weapon the class can train but the character has not learned is no upgrade until the skill is learned', () => {
+	const [r] = run(`
+		w.learnSkill(173, "Daggers", 1, 150)
+		local before = G.CompareToEquipped("item:9030")
+		local b = { up = G.IsUpgrade("item:9030"), usable = before.usable, reason = before.reason }
+		w.learnSkill(43, "Swords", 1, 150)
+		local after = G.CompareToEquipped("item:9030")
+		emit({ before = b, after = { up = G.IsUpgrade("item:9030"), usable = after.usable, reason = after.reason } })
+	`, { cls: 'ROGUE', className: 'Rogue', classID: 4 });
+	assert.deepEqual(r.before, { up: false, usable: false, reason: 'skill' });
+	assert.equal(r.after.usable, true);
+	assert.equal(r.after.up, true);
+	assert.equal(r.after.reason, undefined);
+});
+
+test('without weapon skill data the class weapon list decides, as before', () => {
+	const [r] = run(`local c = G.CompareToEquipped("item:9030"); emit({ G.IsUpgrade("item:9030"), c.usable })`,
+		{ cls: 'ROGUE', className: 'Rogue', classID: 4 });
+	assert.deepEqual(r, [true, true]);
+});
+
 test('spec: automatic from the talent spread, the chosen primary tree, the class default before any point, a chosen spec wins', () => {
 	const [none, primary, talents, chosen, back] = run(`
 		emit({ G.GetSpec() })

@@ -5,7 +5,7 @@
 --       nil: not equippable, not usable by this class, or stats unknown.
 --   Gear.CompareToEquipped(link) -> result | nil
 --       result = { score, old, new, delta, pct (nil for an empty slot), slot,
---                  usable, reason ("class"|"armor"|"weapon"|"dualwield"|nil),
+--                  usable, reason ("class"|"armor"|"weapon"|"skill"|"dualwield"|nil),
 --                  minLevel (level it can be worn), equipped (this very item
 --                  is worn), empty (the slot is empty) }
 --       Rings and trinkets replace the weaker of the two (a unique item only
@@ -498,6 +498,29 @@ local function canDualWield()
 	return Client.KnowsSpell(DUAL_WIELD_SPELL) and true or false
 end
 
+-- Weapon subclass -> weapon skill line (SkillLine.db2). The class may be able
+-- to train a weapon the character has not learned yet (weapon masters).
+local WEAPON_SKILL = {
+	[0] = 44, [1] = 172, [2] = 45, [3] = 46, [4] = 54, [5] = 160, [6] = 229, [7] = 43,
+	[8] = 55, [10] = 136, [13] = 473, [15] = 173, [16] = 176, [18] = 226, [19] = 228,
+}
+-- line -> known; false when the client can't list weapon skills (then every
+-- weapon the class can train counts, as before). Reset by invalidate().
+local weaponSkills
+
+local function knowsWeaponSkill(line)
+	if weaponSkills == nil then
+		weaponSkills = false
+		local known, any = {}, false
+		for _, id in pairs(WEAPON_SKILL) do
+			if ns.Compat.GetSkillRank(id) then known[id], any = true, true end
+		end
+		-- Every character knows some weapon skill; none means no usable API.
+		if any then weaponSkills = known end
+	end
+	return not weaponSkills or weaponSkills[line] == true
+end
+
 -- -> usable, reason, minLevel (the level it can first be worn)
 local function usability(info)
 	local class = player.class
@@ -520,6 +543,7 @@ local function usability(info)
 	elseif info.class == 2 and sub then
 		if sub == 20 then return false, "weapon", minLevel end -- fishing poles
 		if sub ~= 14 and not prof.weapons[sub] then return false, "weapon", minLevel end
+		if WEAPON_SKILL[sub] and not knowsWeaponSkill(WEAPON_SKILL[sub]) then return false, "skill", minLevel end
 		if info.inv == 22 and not canDualWield() then return false, "dualwield", minLevel end
 	end
 	return true, nil, minLevel
@@ -704,6 +728,7 @@ local function invalidate(what)
 		for k in pairs(infoCache) do infoCache[k] = nil end
 		infoCount = 0
 	end
+	weaponSkills = nil
 	if what ~= "bags" then eqDirty = true end
 	bagDirty = true
 	for k in pairs(resultCache) do resultCache[k] = nil end
@@ -720,6 +745,7 @@ end
 ns.RegisterEvent("PLAYER_EQUIPMENT_CHANGED", function() invalidate("equipment") end)
 ns.RegisterEvent("BAG_UPDATE_DELAYED", function() invalidate("bags") end)
 ns.RegisterEvent("PLAYER_LEVEL_UP", onLevel)
+ns.RegisterEvent("SKILL_LINES_CHANGED", function() invalidate("skills") end)
 ns.RegisterEvent("GET_ITEM_INFO_RECEIVED", function() invalidate("items") end)
 for _, ev in ipairs({ "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED", "CHARACTER_POINTS_CHANGED", "TRAIT_CONFIG_UPDATED" }) do
 	ns.RegisterEvent(ev, function() invalidate("spec") end)

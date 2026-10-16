@@ -223,6 +223,7 @@ L["not for your class"] = "no es para tu clase"
 L["armor you cannot wear"] = "armadura que no puedes llevar"
 L["weapon you cannot use"] = "arma que no puedes usar"
 L["needs Dual Wield"] = "requiere Doble empuñadura"
+L["weapon skill not trained"] = "habilidad con el arma no entrenada"
 
 -- Gear/Weights.lua
 L["Arms"] = "Armas"
