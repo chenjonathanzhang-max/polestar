@@ -32,14 +32,14 @@ const TIRISFAL = 'forever/horde/undead/01-tirisfal-glades.guide';
 
 let data;
 const memo = new Map();
-// The guide's goals in order, as { step, goal }.
+// The guide's goals in order, as { step, goal, s } (`s`: the step's number, as the Engine counts them).
 function goals(guide) {
 	if (!memo.has(guide)) {
 		data = data || loadData(DATA);
 		const file = path.join(OFFICIAL_DIR, guide);
 		const { guides } = compileSources([{ file, text: fs.readFileSync(file, 'utf8') }], data);
 		assert.equal(guides.length, 1, `${guide} compiles`);
-		memo.set(guide, guides[0].steps.flatMap((step) => step.goals.map((goal) => ({ step, goal }))));
+		memo.set(guide, guides[0].steps.flatMap((step, s) => step.goals.map((goal) => ({ step, goal, s: s + 1 }))));
 	}
 	return memo.get(guide);
 }
@@ -264,10 +264,10 @@ test(`a Priest's report: an event or escort objective holds its step until the q
 // --- Durotar (AndarKerran): A Pain in the Neck (96873) is for enchanters.
 
 // A guide played by the Engine for one character (`who`: race, raceName,
-// faction, cls, className, level): the status of each goal of `quest`
-// ("accept na", ...), with `skills` (Lua) set before login and `after` run
-// once the guide is open.
-function questGoalStatus(guide, quest, who, { skills = '', after = '' } = {}) {
+// faction, cls, className, level), with `before` (Lua, `w` the stub world)
+// run before login and `after` once the guide is open: what `script` (Lua,
+// `E` the Engine) emits.
+function engineRun(guide, who, { before = '', after = '', script }) {
 	data = data || loadData(DATA);
 	const file = path.join(OFFICIAL_DIR, guide);
 	const { guides } = compileSources([{ file, text: fs.readFileSync(file, 'utf8') }], data);
@@ -279,7 +279,7 @@ function questGoalStatus(guide, quest, who, { skills = '', after = '' } = {}) {
 			before: `local w = stub.world
 				w.race, w.raceName, w.faction, w.class, w.className = "${who.race}", "${who.raceName}", "${who.faction}", "${who.cls}", "${who.className}"
 				w.level = ${who.level}
-				${skills}`,
+				${before}`,
 			addons: [{ name: 'Polestar', files: ['Core/Core.xml'] }],
 			saved: { Polestar: 'PolestarDB = { schema = 1, settings = { behavior = { autoSelectGuide = false } } }' },
 			script: `do local ns = {}
@@ -290,18 +290,45 @@ function questGoalStatus(guide, quest, who, { skills = '', after = '' } = {}) {
 				E.SetGuide("${guide.replace(/\.guide$/, '')}")
 				${after}
 				stub.advance(0.5)
-				local out = {}
-				for i = 1, #E.GetGuide().steps do
-					for _, g in ipairs(E.GetStepView(i).goals) do
-						if g.quest == ${quest} then out[#out + 1] = g.t .. " " .. g.status end
-					end
-				end
-				emit(out)`,
+				${script}`,
 		});
-		return Object.values(emitted[0]);
+		return emitted[0];
 	} finally {
 		fs.rmSync(dir, { recursive: true, force: true });
 	}
+}
+
+// The status of each goal of `quest` ("accept na", ...), with `skills` (Lua)
+// set before login and `after` run once the guide is open.
+function questGoalStatus(guide, quest, who, { skills = '', after = '' } = {}) {
+	return Object.values(engineRun(guide, who, {
+		before: skills,
+		after,
+		script: `local out = {}
+			for i = 1, #E.GetGuide().steps do
+				for _, g in ipairs(E.GetStepView(i).goals) do
+					if g.quest == ${quest} then out[#out + 1] = g.t .. " " .. g.status end
+				end
+			end
+			emit(out)`,
+	})); // an empty Lua table comes back as {}
+}
+
+// What the guide window shows for step `s`: its goals ({ t, quest, status,
+// text, optional }) and its groups (the goal numbers of each, in order), with
+// `before` (Lua) setting up the world before login.
+function stepView(guide, who, s, before = '') {
+	const v = engineRun(guide, who, {
+		before,
+		script: `local v = E.GetStepView(${s})
+			local out = { groups = {}, goals = {} }
+			for k, grp in ipairs(v.groups) do out.groups[k] = grp.goals end
+			for k, g in ipairs(v.goals) do
+				out.goals[k] = { t = g.t, quest = g.quest or 0, status = g.status, text = g.text or "", optional = g.optional }
+			end
+			emit(out)`,
+	});
+	return { goals: v.goals, groups: v.groups };
 }
 
 const TROLL_WARRIOR = { race: 'Troll', raceName: 'Troll', faction: 'Horde', cls: 'WARRIOR', className: 'Warrior', level: 12 };
@@ -415,5 +442,136 @@ test('a quest with objectives is completed or collected between its accept and i
 		const turnin = at(list, `${guide}: turnin ${quest}`, is('turnin', quest));
 		const between = list.slice(accept + 1, turnin).filter(({ goal }) => is(t, quest)(goal));
 		assert.equal(between.length, count, `${guide}: ${count} ${t} goal(s) for ${quest} between its accept and its turn-in`);
+	}
+});
+
+// --- Shadowglen (Pynte, 0.2.4): the first pickups, the totems and the class sigils.
+
+// Conservator Ilthalaine stands beside the start, on the line from Melithar
+// down to Tarindrella: the guide no longer sends you past him first.
+test(`${TELDRASSIL}: Pynte's report: Conservator Ilthalaine's quest is taken before Melithar's`, { skip }, () => {
+	const list = goals(TELDRASSIL);
+	const ilthalaine = at(list, 'accept 456 (The Balance of Nature)', is('accept', 456));
+	const melithar = at(list, 'accept 458 (The Woodland Protector)', is('accept', 458));
+	assert.equal(list[ilthalaine].s, 1, 'taken in the opening step');
+	assert.ok(ilthalaine < melithar, 'Ilthalaine before Melithar');
+	assert.equal(list.find(located).goal.npc, 2079, 'the arrow first leads to Conservator Ilthalaine');
+});
+
+// The Gnarlpine Totems are collected in the field like the Fel Moss, from
+// both totem objects, so the window shows them with the kills, not after.
+test(`${TELDRASSIL}: Pynte's report: the Gnarlpine Totems are open together with the kills and the Fel Moss, at both totem objects`, { skip }, () => {
+	const list = goals(TELDRASSIL);
+	const totems = list[at(list, 'the Gnarlpine Totems (97977)', (g) => g.quest === 97977 && g.t !== 'accept' && g.t !== 'turnin')];
+	const spots = totems.goal.spots || [];
+	for (const object of [668482, 668493]) {
+		for (const sp of data.spawns('object', object).filter((x) => x.map === 1438)) {
+			for (const [x, y] of [...sp.pts, ...sp.more]) {
+				const pt = { map: 1438, x, y };
+				assert.ok(spots.some((o) => yards({ map: 1438, x: o.x, y: o.y }, pt) <= o.r + 1), `the totem ${object} at ${x},${y} lies in one of the goal's spots`);
+			}
+		}
+	}
+	// The report's state: one boar kill left to do, the boars and the moss done, one totem of four.
+	const nightElf = { race: 'NightElf', raceName: 'Night Elf', faction: 'Alliance', cls: 'ROGUE', className: 'Rogue', level: 2 };
+	const view = stepView(TELDRASSIL, nightElf, totems.s, `w.complete({ 458 })
+		w.onQuest(456, { { required = 7, fulfilled = 3 }, { required = 4, fulfilled = 4 } })
+		w.onQuest(459, { { required = 8, fulfilled = 8 } })
+		w.onQuest(97977, { { required = 4, fulfilled = 1 } })`);
+	assert.equal(view.groups.length, 1, `the step is one group: ${JSON.stringify(view.groups)}`);
+	const open = view.goals.filter((g) => g.status === 'active').map((g) => g.quest);
+	assert.deepEqual(open, [456, 97977], 'the Nightsabers and the totems are open at the same time');
+});
+
+// The sigil is taken once The Balance of Nature is in, and handed to the
+// trainer on the visit after Shadowthread Cave, with the class training.
+test(`${TELDRASSIL}: Pynte's report: each class's sigil is handed to its trainer at the training stop after Shadowthread Cave`, { skip }, () => {
+	for (const [quest, cls] of [[3116, 'WARRIOR'], [3117, 'HUNTER'], [3118, 'ROGUE'], [3119, 'PRIEST'], [3120, 'DRUID']]) {
+		const list = goals(TELDRASSIL).filter(forClass(cls));
+		const take = at(list, `accept ${quest} (${cls})`, is('accept', quest));
+		const give = at(list, `turnin ${quest} (${cls})`, is('turnin', quest));
+		assert.ok(at(list, 'turnin 456 (The Balance of Nature)', is('turnin', 456)) < take, `${cls}: the sigil is taken once The Balance of Nature is handed in`);
+		assert.ok(take < at(list, 'Webwood Venom Sacs (916)', (g) => g.t === 'collect' && g.quest === 916), `${cls}: taken before the cave`);
+		assert.ok(at(list, 'turnin 916 (Webwood Venom)', is('turnin', 916)) < give, `${cls}: handed in after the cave`);
+		const train = list.findIndex(({ goal }, i) => i > give && goal.t === 'train' && goal.class);
+		assert.ok(train > give && list[train].s === list[give].s, `${cls}: handed in on the training stop, before the training`);
+		assert.ok(!list.slice(take, give).some(({ goal }) => goal.t === 'train' && goal.class), `${cls}: no class training between the sigil's accept and its turn-in`);
+	}
+});
+
+// --- Darkshire (Yendi, 0.2.3): part 1 of Look to the Stars needs a Bronze Tube.
+
+const NEEDLES = 'forever/alliance/07-thousand-needles.guide';
+
+test(`${NEEDLES}: Yendi's report: Herble's Bronze Tube is offered before Look to the Stars is handed in, without holding the step`, { skip }, () => {
+	const list = goals(NEEDLES);
+	const give = at(list, 'turnin 174 (Look to the Stars)', is('turnin', 174));
+	const buy = at(list, 'buy 4371 (Bronze Tube)', (g) => g.t === 'buy' && g.item === 4371);
+	assert.ok(buy < give && list[buy].s === list[give].s, 'bought on the same stop, before the turn-in');
+	assert.equal(list[buy].goal.npc, 3133, 'from Herble Baubbletump, beside Viktori');
+	// A player who has the tube, or who already handed it in, is not held by it.
+	assert.equal(list[buy].goal.optional, true, 'the buy is optional');
+});
+
+// --- Zephras Isle (Sato, 0.2.3).
+
+const ZEPHRAS_HORDE = 'forever/horde/skyborne/01-zephras-isle.guide';
+const ZEPHRAS_ALLIANCE = 'forever/alliance/skyborne/01-zephras-isle.guide';
+const SKYBORNE_HORDE = { race: 'Skyborne', raceName: 'Skyborne', faction: 'Horde', cls: 'ROGUE', className: 'Rogue', level: 6 };
+const SKYBORNE_ALLIANCE = { race: 'Skyborne', raceName: 'Skyborne', faction: 'Alliance', cls: 'ROGUE', className: 'Rogue', level: 4 };
+// Zephras Isle has no Era frame: points compare in map percent.
+const close = (a, b, pct) => a.map === b.map && Math.hypot(a.x - b.x, a.y - b.y) <= pct;
+
+// The Great Outdoors: /sit by Raan's campfire for Boosted Rest; nothing to click.
+test('Sato\'s report: The Great Outdoors on Zephras Isle is done by sitting at Raan\'s campfire, not by clicking it', { skip }, () => {
+	data = data || loadData(DATA);
+	const fire = data.spawns('object', 460003).find((x) => x.map === 2521);
+	for (const guide of [ZEPHRAS_HORDE, ZEPHRAS_ALLIANCE]) {
+		const list = goals(guide);
+		assert.deepEqual(list.filter(({ goal }) => goal.quest === 96101 && goal.t === 'interact').map(({ s }) => s), [], `${guide}: no click goal`);
+		const take = at(list, `${guide}: accept 96101`, is('accept', 96101));
+		const sit = at(list, `${guide}: complete 96101`, is('complete', 96101));
+		assert.ok(take < sit && sit < at(list, `${guide}: turnin 96101`, is('turnin', 96101)), `${guide}: done between its accept and its turn-in`);
+		assert.ok(close(list[sit].goal, { map: 2521, x: fire.pts[0][0], y: fire.pts[0][1] }, 0.3), `${guide}: the arrow leads to Raan's campfire`);
+	}
+});
+
+// The Gift of Skysight and Reading the Ley Lines are the racial spells cast
+// at the place: the line says so, and still counts from the quest log.
+test('Sato\'s report: the Skysight and Read Ley Line objectives tell you to cast the racial, and tick from the quest log', { skip }, () => {
+	for (const [guide, who, quest, spell] of [[ZEPHRAS_HORDE, SKYBORNE_HORDE, 92598, 'Skysight'], [ZEPHRAS_ALLIANCE, SKYBORNE_ALLIANCE, 92597, 'Read Ley Line']]) {
+		const list = goals(guide);
+		const i = at(list, `${guide}: the objective of ${quest}`, (g) => g.quest === quest && g.oi === 1);
+		const view = stepView(guide, who, list[i].s, `w.onQuest(${quest}, { { required = 1, fulfilled = 1 } })`);
+		const line = view.goals.find((g) => g.quest === quest && g.t !== 'accept' && g.t !== 'turnin');
+		assert.ok(!/^Click\b/.test(line.text) && line.text.includes(spell), `${guide}: "${line.text}" names ${spell}, not a click`);
+		assert.equal(line.status, 'done', `${guide}: ticked once the quest log counts it`);
+	}
+});
+
+// Welcome to Shen'dar Village: talking to Illaya before the step counts.
+test(`${ZEPHRAS_HORDE}: Sato's report: Welcome to Shen'dar Village follows its objectives, and is taken before Illaya's talk`, { skip }, () => {
+	const list = goals(ZEPHRAS_HORDE);
+	assert.ok(at(list, 'accept 92514', is('accept', 92514)) < at(list, 'complete 92595 (talk to Illaya)', is('complete', 92595)), 'taken before the talk to Illaya for The Windshapers, which counts for it too');
+	const step = list[at(list, 'turnin 92514', is('turnin', 92514))].s;
+	assert.deepEqual(list.filter(({ s, goal }) => s === step && goal.t === 'talk').map(({ goal }) => goal.npc), [], 'no bare talk goal that only counts during the step');
+	const objectives = (illaya, coriella) => stepView(ZEPHRAS_HORDE, SKYBORNE_HORDE, step, `w.complete({ 92595 })
+		w.onQuest(92514, { { required = 1, fulfilled = ${illaya} }, { required = 1, fulfilled = ${coriella} } })`)
+		.goals.filter((g) => g.quest === 92514 && g.t !== 'turnin').map((g) => g.status);
+	assert.deepEqual(objectives(1, 0).map((st) => st === 'done'), [true, false], 'Illaya done earlier, Coriella still to do');
+	assert.ok(objectives(1, 1).every((st) => st === 'done'), 'both done: only the turn-in is left');
+});
+
+// Aggressive Encroachment: the Scrawny Ursera are on the slope west of
+// Thendal Village (Wowhead Forever), not in the village.
+test('Sato\'s report: the Scrawny Ursera step leads to the slope west of Thendal Village', { skip }, () => {
+	const corrections = require('../tools/lib/data/corrections.json');
+	const wowhead = corrections.npcs[250926].addSpawns[2521].pts;
+	assert.ok(wowhead.every(([x]) => x <= 41.6), 'the corrected spawns are all west of the village');
+	for (const guide of [ZEPHRAS_HORDE, ZEPHRAS_ALLIANCE]) {
+		const list = goals(guide);
+		const { goal } = list[at(list, `${guide}: Scrawny Ursera Claw`, (g) => g.t === 'collect' && g.item === 251918)];
+		assert.ok(wowhead.some(([x, y]) => close(goal, { map: 2521, x, y }, 0.3)), `${guide}: the arrow's point ${goal.x},${goal.y} is at a Scrawny Ursera spawn`);
+		for (const sp of (goal.spots || []).filter((o) => !o.alt)) assert.ok(sp.x <= 41.7, `${guide}: the spot ${sp.x},${sp.y} is west of the village`);
 	}
 });
