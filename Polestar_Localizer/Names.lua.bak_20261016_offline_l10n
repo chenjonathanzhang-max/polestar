@@ -1,0 +1,4 @@
+-- Polestar_Localizer/Names.lua
+-- Placeholder: build_names.py fills this from the client dump (/pstar dump).
+-- Everything empty means Apply.lua only localises the interface, not the guide text.
+PolestarLocalizer_Names = { zhCN = {}, zhTW = {} }

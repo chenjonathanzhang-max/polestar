@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: Polestar Localizer (zhCN / zhTW)
+## Notes: Dumps client-localised names for Polestar's guides, and applies the finished zhCN/zhTW tables at runtime.
+## Author: local
+## Version: 0.2.0
+## OptionalDeps: Polestar, Polestar_Guides
+## SavedVariables: PolestarLocalizerDB
+
+Ids.lua
+Dump.lua
+Names.lua
+Locale.lua
+Notes.lua
+Apply.lua
